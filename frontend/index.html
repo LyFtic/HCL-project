@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I am Composer</title>
+
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="left-side">
+
+            <div id="osmdContainer"></div>
+            <div id="piano">
+                <div id="key60" class="key whiteKey">a</div>
+                <div id="key62" class="key whiteKey">s</div>
+                <div id="key64" class="key whiteKey">d</div>
+                <div id="key65" class="key whiteKey">f</div>
+                <div id="key67" class="key whiteKey">j</div>
+                <div id="key69" class="key whiteKey">k</div>
+                <div id="key71" class="key whiteKey">l</div>
+                <div id="key61" class="key blackKey"></div>
+                <div id="key63" class="key blackKey"></div>
+                <div id="key66" class="key blackKey"></div>
+                <div id="key68" class="key blackKey"></div>
+                <div id="key70" class="key blackKey"></div>
+            </div>
+            <div class="visual-container">
+                <div class="inner-container">
+                    <div class="visualization do"></div>
+                    <div class="visualization do" id="do"></div>
+                    <div class="visualization do"></div>
+                    <div class="visualization re"></div>
+                    <div class="visualization re" id="re"></div>
+                    <div class="visualization re"></div>
+                    <div class="visualization me"></div>
+                    <div class="visualization me" id="me"></div>
+                    <div class="visualization me"></div>
+                    <div class="visualization fa"></div>
+                    <div class="visualization fa" id="fa"></div>
+                    <div class="visualization fa"></div>
+                    <div class="visualization so"></div>
+                    <div class="visualization so" id="so"></div>
+                    <div class="visualization so"></div>
+                    <div class="visualization la"></div>
+                    <div class="visualization la" id="la"></div>
+                    <div class="visualization la"></div>
+                    <div class="visualization xi"></div>
+                    <div class="visualization xi" id="xi"></div>
+                    <div class="visualization xi"></div>
+                </div>
+            </div>
+        </div>
+        <div class="right-side">
+            <div class="score-container">
+                <textarea id="score" placeholder="简谱..."  cols="10" rows="10" style="width: 100%;height: 100%; border: none; resize: none;"></textarea>
+                <button onclick="playScore()">播放</button>
+                <button onclick="cleanScore()">清除</button>
+                <button onclick="identify()">识谱</button>
+            </div>
+            <div class="canvas-container">
+                <canvas id="canvasElement">
+                </canvas>
+
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="js/piano.js"></script>
+<link href="css/piano.css" type="text/css" rel="stylesheet">
+<script type="text/javascript" src="./js/jquery.min.js"></script>
+<script type="text/javascript" src="./js/main.js"></script>
+<script src="js/opensheetmusicdisplay.min.js"></script>
+
+<script>
+    var s = "";
+    $.ajax({
+        url: 'http://localhost:5005/get_musicxml',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify([0]),
+        async: false,
+        success: (data) => {
+            s = data;
+        }
+    });
+    var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmdContainer");
+    osmd.setOptions({
+        backend: "svg",
+        drawTitle: true,
+        // drawingParameters: "compacttight" // don't display title, composer etc., smaller margins
+    });
+    osmd
+        .load(s)
+        .then(
+            function () {
+                osmd.render();
+            }
+        );
+</script>
+
+<script>
+    function play(note) {
+        let src = "./assets/" + note + '.mp3';
+        let audio = new Audio(src);
+        let list = ['do', 're', 'me', 'fa', 'so', 'la', 'xi'];
+        let index = list.indexOf(note);
+        // document.getElementsByClassName("box")[index].style.height = "100px";
+        $("#" + note).height(100);
+        let noteList = document.getElementsByClassName(note);
+        $("." + note + ":first").height(100 * Math.random());
+        $("." + note + ":eq(2)").height(100 * Math.random());
+        audio.play();
+        setTimeout(() => {
+            // document.getElementsByClassName("box")[index].style.height = "5px";
+            $("." + note).height(5);
+            let noteList = document.getElementsByClassName(note);
+        }, 300);
+    }
+</script>
+
+<script>
+    var record = [];
+    function addRecord(note) {
+        let list = ['do', 're', 'me', 'fa', 'so', 'la', 'xi'];
+        record.push([list.indexOf(note) + 1,1]);
+        let text = "";
+        for (let i = 0; i < record.length; i++) {
+            text=text.concat(record[i][0].toString())
+            switch(record[i][1]){
+                case 0:text=text.concat('(低)')
+                    break;
+                case 1:text=text.concat('(中)')
+                    break;
+                case 2:text=text.concat('(高)')
+                    break;
+            }
+        }
+        document.getElementById("score").innerHTML = text;
+        // 更新五线谱
+        var s = "";
+        $.ajax({
+            url: 'http://localhost:5005/get_musicxml',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(record),
+            success: (data) => {
+                var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmdContainer");
+                osmd.setOptions({
+                    backend: "svg",
+                    drawTitle: true,
+                    // drawingParameters: "compacttight" // don't display title, composer etc., smaller margins
+                });
+                osmd
+                    .load(data)
+                    .then(
+                        function () {
+                            osmd.render();
+                        }
+                    );
+            }
+        });
+        // var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmdContainer");
+        // osmd.setOptions({
+        //     backend: "svg",
+        //     drawTitle: true,
+        //     // drawingParameters: "compacttight" // don't display title, composer etc., smaller margins
+        // });
+        // osmd
+        //     .load(s)
+        //     .then(
+        //         function () {
+        //             osmd.render();
+        //         }
+        //     );
+    }
+
+    async function playScore() {
+        for (let i = 0; i < record.length; i++) {
+            let list = ['do', 're', 'me', 'fa', 'so', 'la', 'xi'];
+            let key_list0 = ['53', '54', '55', '56', '57', '58', '59'];
+            let key_list1 = ['60', '62', '64', '65', '67', '69', '71'];
+            let key_list2 = ['73', '74', '75', '76', '77', '78', '79'];
+            switch (record[i][1]) {
+                case 0:playSound(key_list0[record[i][0] - 1]);break;
+                case 1:playSound(key_list1[record[i][0] - 1]);break;
+                default:playSound(key_list2[record[i][0] - 1]);
+            }
+            await sleep(300);
+        }
+    }
+
+    function sleep(time) {
+        return new Promise((resolve) => setTimeout(resolve, time));
+    }
+
+    function cleanScore() {
+        record = [];
+        document.getElementById("score").value = "";
+    }
+</script>
+<script>
+    document.getElementById("score").addEventListener('mousewheel', function(e){//监听鼠标滚轮
+        if (e.wheelDelta >0) { //按上键上调音调
+            var score=document.getElementById("score")
+            se=score.selectionStart//获取并保存光标位置
+            if(record[(score.selectionStart - score.selectionStart % 4)/4][1]<2) {
+                record[(score.selectionStart - score.selectionStart % 4) / 4][1]++;
+            }
+            text=''
+            for(let i=0;i<record.length;i++)//设置简谱内容
+            {
+                text=text.concat(record[i][0].toString())
+                switch(record[i][1]){
+                    case 0:text=text.concat('(低)')
+                        break;
+                    case 1:text=text.concat('(中)')
+                        break;
+                    case 2:text=text.concat('(高)')
+                        break;
+                }
+            }
+            document.getElementById("score").value=text
+            score=document.getElementById("score")
+            if(score.setSelectionRange){//设置光标位置
+                score.focus();
+                score.setSelectionRange(se,se);
+            }
+        }
+        if (e.wheelDelta <0) { //按下键下调音调
+            var score=document.getElementById("score")
+            se=score.selectionStart//获取并保存光标位置
+            if(record[(score.selectionStart - score.selectionStart % 4)/4][1]>0) {
+                record[(score.selectionStart - score.selectionStart % 4) / 4][1]--;
+            }
+            text=''
+            for(let i=0;i<record.length;i++)//设置简谱内容
+            {
+                text=text.concat(record[i][0].toString())
+                switch(record[i][1]){
+                    case 0:text=text.concat('(低)')
+                        break;
+                    case 1:text=text.concat('(中)')
+                        break;
+                    case 2:text=text.concat('(高)')
+                        break;
+                }
+            }
+            document.getElementById("score").value=text
+            score=document.getElementById("score")
+            if(score.setSelectionRange){//设置光标位置
+                score.focus();
+                score.setSelectionRange(se,se);
+            }
+        }
+    });
+</script>
+
+<style>
+    body {
+        background: #bdc3c7;
+        /* fallback for old browsers */
+        background: -webkit-linear-gradient(to left, #2c3e50, #bdc3c7);
+        /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to left, #2c3e50, #bdc3c7);
+        /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+    }
+
+    html,
+    body {
+        height: 100%;
+    }
+
+    .main-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        height: 100%;
+    }
+
+    .left-side {
+        display: flex;
+        flex-direction: column;
+        width: 70%;
+        align-items: center;
+        height: 98%;
+        justify-content: space-around;
+    }
+
+    .right-side {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 30%;
+        height: 98%;
+        justify-content: space-around;
+
+    }
+
+    .canvas-container {
+        display: flex;
+        width: 449;
+        height: 449;
+        flex-grow: 0;
+        flex-direction: row;
+        justify-content: space-around;
+    }
+
+    #all {
+        border: solid 0px #333;
+        margin: 100px auto;
+    }
+
+    .visualization {
+        height: 5px;
+        border-radius: 2px;
+        width: 50px;
+        transition: 0.8s ease-out;
+        margin: 1px;
+        background: #D3CCE3;
+        /* fallback for old browsers */
+        background: -webkit-linear-gradient(to bottom, #E9E4F0, #D3CCE3);
+        /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to bottom, #E9E4F0, #D3CCE3);
+        /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+
+
+    }
+
+    .piano {
+        display: flex;
+    }
+
+    .visual-container {
+        display: flex;
+        height: 100px;
+        flex-direction: column-reverse;
+        align-items: center;
+    }
+
+    .inner-container {
+        display: flex;
+        flex-direction: row;
+        height: 100px;
+        align-items: flex-end;
+    }
+
+    #score {
+        border: solid 1px black;
+        width: 449px;
+        height: 449px;
+        background-color: white;
+        font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        font-size: 30px;
+    }
+
+    #osmdContainer {
+        width: 100%;
+        height: 300px;
+    }
+</style>
+
+</html>
